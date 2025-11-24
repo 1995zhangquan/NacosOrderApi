@@ -53,22 +53,12 @@ jobs:
       - name: Build and push Docker images
         if: env.VERSION_CHANGED == 'true'
         run: |
-          # 为每个模块构建和推送 Docker 镜像
-          for module in "NacosOrderApi" "NacosUserApi" "NacosGateWary"; do
-            if [ -f "$module/pom.xml" ]; then
-              echo "Building and pushing image for $module"
-              cd $module
-              mvn dockerfile:build dockerfile:push -Ddockerfile.tag=${{ env.VERSION }} -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/$module
-              cd ..
-            else
-              echo "Skipping $module - no pom.xml found"
-            fi
-          done
-          
+          # 为当前模块构建和推送 Docker 镜像
+          echo "Building and pushing image for ${{ env.IMAGE_NAME }}"
+          mvn dockerfile:build dockerfile:push -Ddockerfile.tag=${{ env.VERSION }} -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+
       - name: Deployment information
         if: env.VERSION_CHANGED == 'true'
         run: |
-          echo "Images successfully pushed to Docker Hub:"
-          echo "- ${{ secrets.DOCKER_USERNAME }}/NacosOrderApi:${{ env.VERSION }}"
-          echo "- ${{ secrets.DOCKER_USERNAME }}/NacosUserApi:${{ env.VERSION }}"
-          echo "- ${{ secrets.DOCKER_USERNAME }}/NacosGateWary:${{ env.VERSION }}"
+          echo "Image successfully pushed to Docker Hub:"
+          echo "- ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
