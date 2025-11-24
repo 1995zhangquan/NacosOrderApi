@@ -8,7 +8,47 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
+          git diff --name-only HEAD^ HEAD >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Check for version change
+        id: check-version
+        run: |
+          # 检查 pom.xml 是否在变更文件中
+          if echo "$CHANGED_FILES" | grep -q "pom.xml"; then
+            # 获取前一个提交中的版本号
+            OLD_VERSION=$(git show HEAD^:pom.xml | grep -A 0 -B 0 "<version>" | head -1 | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            # 获取当前版本号
+            NEW_VERSION=$(grep -A 0 -B 0 "<version>" pom.xml | head -1 | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            
+            echo "OLD_VERSION=$OLD_VERSION" >> $GITHUB_ENV
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+            echo "Version changed from $OLD_VERSION to $NEW_VERSION"
+            
+            # 使用 Maven 命令进行更准确的版本比较
+            if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+              echo "VERSION_CHANGED=true" >> $GITHUB_ENV
+              echo "Version has changed, proceeding with deployment"
+            else
+              echo "VERSION_CHANGED=false" >> $GITHUB_ENV
+              echo "Version has not changed, deployment will be skipped"
+            fi
+          else
+            echo "VERSION_CHANGED=false" >> $GITHUB_ENV
+            echo "pom.xml has not changed, deployment will be skipped"
+          fi
+
+      - name: Exit if no version change
+        if: env.VERSION_CHANGED != 'true'
+        run: |
+          echo "No version change detected. Exiting."
+          exit 0
 
       - name: Get project info
         id: project_info
@@ -26,6 +66,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
       - name: Build with Maven
         run: |
@@ -62,5 +109,7 @@ jobs:
       - name: Deployment information
         run: |
           echo "Image successfully pushed to Docker Hub:"
-          echo "- ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
-          echo "- ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+          echo "- Repository: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}"
+          echo "- Version tag: ${{ env.VERSION }}"
+          echo "- Latest tag: latest"
+          echo "Deployment completed at: $(date)"
