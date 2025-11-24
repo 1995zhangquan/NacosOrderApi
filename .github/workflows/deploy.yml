@@ -13,8 +13,9 @@ jobs:
       - name: Get project info
         id: project_info
         run: |
-          VERSION=$(grep -A 0 -B 0 "<version>" pom.xml | head -1 | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-          PROJECT_NAME=$(grep -A 0 -B 0 "<artifactId>" pom.xml | head -1 | sed -e 's/.*<artifactId>\(.*\)<\/artifactId>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          # 使用 Maven 命令准确提取当前项目的 artifactId 和 version
+          PROJECT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "IMAGE_NAME=$PROJECT_NAME" >> $GITHUB_ENV
           echo "Project name: $PROJECT_NAME"
