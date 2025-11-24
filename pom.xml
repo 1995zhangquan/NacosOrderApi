@@ -13,7 +13,7 @@
     
     <groupId>com.cloud</groupId>
     <artifactId>nacosorderapi</artifactId>
-    <version>0.0.10-SNAPSHOT</version>
+    <version>0.0.11-SNAPSHOT</version>
     <name>nacosorderapi</name>
     <description>NacosOrderApi</description>
     
@@ -197,7 +197,8 @@
                         <phase>install</phase>
                         <goals>
                             <goal>build</goal>
-                            <goal>push</goal>
+                            <!-- 注释掉自动推送，改由GitHub Actions控制 -->
+                            <!-- <goal>push</goal> -->
                         </goals>
                     </execution>
                 </executions>

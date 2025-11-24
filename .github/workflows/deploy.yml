@@ -44,11 +44,15 @@ jobs:
           # 为当前模块构建和推送 Docker 镜像
           echo "Building and pushing image for ${{ env.IMAGE_NAME }}"
           
-          # 使用 pom.xml 中配置的仓库路径
-          mvn dockerfile:build dockerfile:push -Ddockerfile.tag=${{ env.VERSION }} -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          # 构建 Docker 镜像
+          mvn dockerfile:build -Ddockerfile.tag=${{ env.VERSION }} -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          
+          # 推送镜像到 Docker Hub (使用 GitHub Actions 登录的凭据)
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
           
           # 同时推送 latest 标签
-          mvn dockerfile:build dockerfile:push -Ddockerfile.tag=latest -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          docker tag ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Deployment information
         run: |
