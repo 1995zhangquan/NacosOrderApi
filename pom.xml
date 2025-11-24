@@ -12,9 +12,9 @@
     
     
     <groupId>com.cloud</groupId>
-    <artifactId>NacosOrderApi</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
-    <name>NacosOrderApi</name>
+    <artifactId>nacosorderapi</artifactId>
+    <version>0.0.7-SNAPSHOT</version>
+    <name>nacosorderapi</name>
     <description>NacosOrderApi</description>
     
     <properties>
