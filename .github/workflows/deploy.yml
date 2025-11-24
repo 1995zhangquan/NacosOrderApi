@@ -44,13 +44,14 @@ jobs:
           # 为当前模块构建和推送 Docker 镜像
           echo "Building and pushing image for ${{ env.IMAGE_NAME }}"
           
+          # 显示将要推送的镜像信息（用于调试）
+          echo "Repository: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}"
+          echo "Version: ${{ env.VERSION }}"
+          
           # 构建 Docker 镜像
           mvn dockerfile:build -Ddockerfile.tag=${{ env.VERSION }} -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
           
-          # 手动重新登录以确保凭据有效
-          echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          
-          # 推送镜像到 Docker Hub
+          # 推送镜像到 Docker Hub (使用 GitHub Actions 登录的凭据)
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
           
           # 同时推送 latest 标签
