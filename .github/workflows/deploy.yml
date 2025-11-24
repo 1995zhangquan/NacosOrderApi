@@ -1,0 +1,73 @@
+name: Auto Deploy on Version Change
+on:
+  push:
+    branches: [ master ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Check version change
+        id: check_version
+        run: |
+          OLD_VERSION=$(git show HEAD~1:pom.xml | grep -A 0 -B 0 "<version>" | head -1 | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          NEW_VERSION=$(grep -A 0 -B 0 "<version>" pom.xml | head -1 | sed -e 's/.*<version>\(.*\)<\/version>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          echo "OLD_VERSION=$OLD_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION"
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "VERSION_CHANGED=true" >> $GITHUB_ENV
+            echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+            echo "IMAGE_NAME=SpringCloud" >> $GITHUB_ENV
+            echo "Version changed from $OLD_VERSION to $NEW_VERSION"
+          else
+            echo "No version change detected"
+          fi
+
+      - name: Set up JDK 17
+        if: env.VERSION_CHANGED == 'true'
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        if: env.VERSION_CHANGED == 'true'
+        run: |
+          mvn clean install -DskipTests
+
+      - name: Set up Docker Buildx
+        if: env.VERSION_CHANGED == 'true'
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        if: env.VERSION_CHANGED == 'true'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker images
+        if: env.VERSION_CHANGED == 'true'
+        run: |
+          # 为每个模块构建和推送 Docker 镜像
+          for module in "NacosOrderApi" "NacosUserApi" "NacosGateWary"; do
+            if [ -f "$module/pom.xml" ]; then
+              echo "Building and pushing image for $module"
+              cd $module
+              mvn dockerfile:build dockerfile:push -Ddockerfile.tag=${{ env.VERSION }} -Ddockerfile.repository=${{ secrets.DOCKER_USERNAME }}/$module
+              cd ..
+            else
+              echo "Skipping $module - no pom.xml found"
+            fi
+          done
+          
+      - name: Deployment information
+        if: env.VERSION_CHANGED == 'true'
+        run: |
+          echo "Images successfully pushed to Docker Hub:"
+          echo "- ${{ secrets.DOCKER_USERNAME }}/NacosOrderApi:${{ env.VERSION }}"
+          echo "- ${{ secrets.DOCKER_USERNAME }}/NacosUserApi:${{ env.VERSION }}"
+          echo "- ${{ secrets.DOCKER_USERNAME }}/NacosGateWary:${{ env.VERSION }}"
