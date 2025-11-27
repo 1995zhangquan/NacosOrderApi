@@ -1,0 +1,32 @@
+--常用命令记录，防止忘记
+docker run -d --name nacosorderapi -p 8912:8912 zhangqstudy/nacosorderapi:latest
+--查看镜像内容
+docker export temp_container | tar -t
+docker rm temp_container
+
+
+# 列出所有本地镜像
+docker images
+# 修改deamon文件后重启
+sudo systemctl deamon-reload
+sudo systemctl restart docker
+# 实时跟踪日志输出
+docker logs -f [容器名称或ID]
+
+sudo systemctl status docker
+
+docker ps
+
+
+# 查看特定容器的详细信息
+docker inspect [容器名称或ID]
+
+# 拉取最新镜像
+docker-compose -f doker-compose.yml pull nacosorderapi
+# 重启服务
+docker-compose -f doker-compose.yml up -d nacosorderapi
+
+# 拉取所有服务的最新镜像
+docker-compose -f doker-compose.yml pull
+# 重启所有服务
+docker-compose -f doker-compose.yml up -d
