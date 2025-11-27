@@ -61,6 +61,30 @@ jobs:
           echo "Project name: $PROJECT_NAME"
           echo "Version: $VERSION"
 
+      - name: Check if Docker image exists
+        id: check-image
+        run: |
+          # 检查 Docker Hub 上是否已存在该版本的镜像
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -u ${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKERHUB_TOKEN }} \
+            https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}/tags/${{ env.VERSION }})
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "IMAGE_EXISTS=true" >> $GITHUB_ENV
+            echo "${{ env.VERSION }} image already exists"
+          else
+            echo "IMAGE_EXISTS=false" >> $GITHUB_ENV
+            echo "No existing image found for ${{ env.VERSION }}"
+          fi
+
+      - name: Exit if image already exists
+        if: env.IMAGE_EXISTS == 'true'
+        run: |
+          echo "${{ env.VERSION }} 已存在，跳过部署"
+          exit 0
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
