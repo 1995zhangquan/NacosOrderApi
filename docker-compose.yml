@@ -17,31 +17,27 @@ services:
       MYSQL_ROOT_HOST: '%' # 允许远程连接
     ports:
       - "3306:3306"
-    volumes: #加载本地目录下的配置文件到容器目标地址下
-      - mysql_data:/var/lib/mysql # 挂载 mysql_data 卷到 /var/lib/mysql 实现数据持久化
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # 挂载本地 init.sql 文件到容器初始化目录，用于数据库初始化
-
     networks:
       - vue3-network
-    command: -- default-authentication-plugin=mysql_native_password  # 提高兼容性
+    command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped #自动重启
 
 
   zookeeper:
-    image: bitnami/zookeeper:latest
+    image: zookeeper:latest
     container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes" #允许匿名登录
+      ALLOW_ANONYMOUS_LOGIN: "yes" #允许匿名登录dock
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - vue3-network
 
   kafka:
-    image: bitnami/kafka:latest
-   # image: confluentinc/cp-kafka:7.5.0
+    image: apache/kafka:4.1.1
+    # image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     ports:
       - "9092:9092"
@@ -57,22 +53,29 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_CFG_AUTO_CREATE_TOPICS=true #自动创建主题
     restart: unless-stopped
-  nacos8841:
-    image: nacos/nacos-server:2.1.0
-    container_name: nacos-server
+
+  nacos8814:
+    image: nacos/nacos-server:latest
+    container_name: nacos-server8814
     ports:
-      - "8841:8841"
+      - "8814:8848"
     environment:
-      MODE: cluster
-      NACOS_SERVER_IP: 192.168.10.66
-      NACOS_APPLICATION_PORT: 8841
-      NACOS_SERVERS: "192.168.10.66:8841 192.168.10.66:8836 192.168.10.66:8853"
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: 123456
+      - MODE=cluster
+      - NACOS_SERVER_IP=192.168.1.18
+      - NACOS_APPLICATION_PORT=8814
+      - NACOS_SERVERS=192.168.1.18:8814,192.168.1.18:8836,192.168.1.18:8853
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=mysql
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_DB_NAME=vue3db
+      - MYSQL_SERVICE_USER=root
+      - MYSQL_SERVICE_PASSWORD=123456
+      - MYSQL_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&serverTimezone=Asia/Shanghai
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_IDENTITY_KEY=nacosidentitykey
+      - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
+      - EMBEDDED_STORAGE=embedded
     volumes:
       - ./nacos-cluster.conf:/home/conf/nacos-cluster.conf
     depends_on:
@@ -82,21 +85,28 @@ services:
     restart: unless-stopped
 
   nacos8836:
-    image: nacos/nacos-server:2.1.0
-    container_name: nacos-server
+    image: nacos/nacos-server:latest
+    container_name: nacos-server8836
     ports:
-      - "8836:8836"
+      - "8836:8848"
     environment:
-      MODE: cluster
-      NACOS_SERVER_IP: 192.168.10.66
-      NACOS_APPLICATION_PORT: 8836
-      NACOS_SERVERS: "192.168.10.66:8841 192.168.10.66:8836 192.168.10.66:8853"
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: 123456
+      - MODE=cluster
+      - NACOS_SERVER_IP=192.168.1.18
+      - NACOS_APPLICATION_PORT=8836
+      - NACOS_CONSOLE_PORT=8824
+      - NACOS_SERVERS=192.168.1.18:8814,192.168.1.18:8836,192.168.1.18:8853
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=mysql
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_DB_NAME=vue3db
+      - MYSQL_SERVICE_USER=root
+      - MYSQL_SERVICE_PASSWORD=123456
+      - MYSQL_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&serverTimezone=Asia/Shanghai
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_IDENTITY_KEY=nacosidentitykey
+      - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
+      - EMBEDDED_STORAGE=embedded
     volumes:
       - ./nacos-cluster.conf:/home/conf/nacos-cluster.conf
     depends_on:
@@ -106,21 +116,28 @@ services:
     restart: unless-stopped
 
   nacos8853:
-    image: nacos/nacos-server:2.1.0
-    container_name: nacos-server
+    image: nacos/nacos-server:latest
+    container_name: nacos-server8853
     ports:
-      - "8853:8853"
+      - "8853:8848"
     environment:
-      MODE: cluster
-      NACOS_SERVER_IP: 192.168.10.66
-      NACOS_APPLICATION_PORT: 8853
-      NACOS_SERVERS: "192.168.10.66:8841 192.168.10.66:8836 192.168.10.66:8853"
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: 123456
+      - MODE=cluster
+      - NACOS_SERVER_IP=192.168.1.18
+      - NACOS_APPLICATION_PORT=8814
+      - NACOS_CONSOLE_PORT=8824
+      - NACOS_SERVERS=192.168.1.18:8814,192.168.1.18:8836,192.168.1.18:8853
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=mysql
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_DB_NAME=vue3db
+      - MYSQL_SERVICE_USER=root
+      - MYSQL_SERVICE_PASSWORD=123456
+      - MYSQL_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&serverTimezone=Asia/Shanghai
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_IDENTITY_KEY=nacosidentitykey
+      - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
+      - EMBEDDED_STORAGE=embedded
     volumes:
       - ./nacos-cluster.conf:/home/conf/nacos-cluster.conf
     depends_on:
@@ -128,6 +145,7 @@ services:
     networks:
       - vue3-network
     restart: unless-stopped
+
 
   redis:
     image: redis:latest
@@ -144,11 +162,10 @@ services:
     ports:
       - "8848:8848"
     volumes:
-      - ./nginx.conf:/home/conf/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - nacos8841
+      - nacos8814
       - nacos8836
       - nacos8853
     networks:
       - vue3-network
-

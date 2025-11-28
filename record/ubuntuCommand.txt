@@ -25,11 +25,19 @@ sudo docker-compose -f docker-compose.yml up -d
     docker inspect [容器名称或ID]
 
 拉取最新镜像
-    docker-compose -f doker-compose.yml pull nacosorderapi
+    docker-compose -f docker-compose.yml pull nacosorderapi
 重启服务
-    docker-compose -f doker-compose.yml up -d nacosorderapi
+    docker-compose -f docker-compose.yml up -d nacosorderapi
 
 拉取所有服务的最新镜像
-    docker-compose -f doker-compose.yml pull
+    docker-compose -f docker-compose.yml pull
 重启所有服务
-    docker-compose -f doker-compose.yml up -d
+    docker-compose -f docker-compose.yml up -d
+
+暂停服务
+docker stop mysql
+删除服务
+docker rm mysql
+
+docker-compose down
+docker rm -f nacos-server8841 nacos-server8836 nacos-server8853
