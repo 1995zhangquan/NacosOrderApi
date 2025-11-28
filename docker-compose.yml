@@ -12,6 +12,7 @@ services:
     image: mysql:5.7
     container_name: mysql
     environment:
+      MYSQL_USER: root
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: vue3db
       MYSQL_ROOT_HOST: '%' # 允许远程连接
@@ -54,16 +55,19 @@ services:
       - KAFKA_CFG_AUTO_CREATE_TOPICS=true #自动创建主题
     restart: unless-stopped
 
+  # 第一个Nacos节点
   nacos8814:
     image: nacos/nacos-server:latest
     container_name: nacos-server8814
     ports:
-      - "8814:8848"
+      - "8814:8848"      # 主机端口8814映射到容器标准端口8848
+      - "8824:8824"      # 控制台端口
     environment:
       - MODE=cluster
       - NACOS_SERVER_IP=192.168.1.18
-      - NACOS_APPLICATION_PORT=8814
-      - NACOS_SERVERS=192.168.1.18:8814,192.168.1.18:8836,192.168.1.18:8853
+      - NACOS_APPLICATION_PORT=8848      # 容器内仍使用标准端口
+      - NACOS_CONSOLE_PORT=8824
+      - NACOS_SERVERS=192.168.1.18:8814 192.168.1.18:8836 192.168.1.18:8853
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_PORT=3306
@@ -77,24 +81,26 @@ services:
       - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
       - EMBEDDED_STORAGE=embedded
     volumes:
-      - ./nacos-cluster.conf:/home/conf/nacos-cluster.conf
+      - ./nacos-cluster.conf:/home/conf/cluster.conf
     depends_on:
       - mysql
     networks:
       - vue3-network
     restart: unless-stopped
 
+  # 第二个Nacos节点
   nacos8836:
     image: nacos/nacos-server:latest
     container_name: nacos-server8836
     ports:
-      - "8836:8848"
+      - "8836:8848"      # 主机端口8836映射到容器标准端口8848
+      - "8846:8846"      # 控制台端口
     environment:
       - MODE=cluster
       - NACOS_SERVER_IP=192.168.1.18
-      - NACOS_APPLICATION_PORT=8836
-      - NACOS_CONSOLE_PORT=8824
-      - NACOS_SERVERS=192.168.1.18:8814,192.168.1.18:8836,192.168.1.18:8853
+      - NACOS_APPLICATION_PORT=8848      # 容器内仍使用标准端口
+      - NACOS_CONSOLE_PORT=8846
+      - NACOS_SERVERS=192.168.1.18:8814 192.168.1.18:8836 192.168.1.18:8853
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_PORT=3306
@@ -108,24 +114,26 @@ services:
       - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
       - EMBEDDED_STORAGE=embedded
     volumes:
-      - ./nacos-cluster.conf:/home/conf/nacos-cluster.conf
+      - ./nacos-cluster.conf:/home/conf/cluster.conf
     depends_on:
       - mysql
     networks:
       - vue3-network
     restart: unless-stopped
 
+  # 第三个Nacos节点
   nacos8853:
     image: nacos/nacos-server:latest
     container_name: nacos-server8853
     ports:
-      - "8853:8848"
+      - "8853:8848"      # 主机端口8853映射到容器标准端口8848
+      - "8863:8863"      # 控制台端口
     environment:
       - MODE=cluster
       - NACOS_SERVER_IP=192.168.1.18
-      - NACOS_APPLICATION_PORT=8814
-      - NACOS_CONSOLE_PORT=8824
-      - NACOS_SERVERS=192.168.1.18:8814,192.168.1.18:8836,192.168.1.18:8853
+      - NACOS_APPLICATION_PORT=8848      # 容器内仍使用标准端口
+      - NACOS_CONSOLE_PORT=8863
+      - NACOS_SERVERS=192.168.1.18:8814 192.168.1.18:8836 192.168.1.18:8853
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_PORT=3306
@@ -139,23 +147,14 @@ services:
       - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
       - EMBEDDED_STORAGE=embedded
     volumes:
-      - ./nacos-cluster.conf:/home/conf/nacos-cluster.conf
+      - ./nacos-cluster.conf:/home/conf/cluster.conf
     depends_on:
       - mysql
     networks:
       - vue3-network
     restart: unless-stopped
 
-
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
-    networks:
-      - vue3-network
-
-
+  # Nginx 负载均衡器
   nginx:
     image: nginx:latest
     container_name: nginx-balance
@@ -167,5 +166,14 @@ services:
       - nacos8814
       - nacos8836
       - nacos8853
+    networks:
+      - vue3-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
     networks:
       - vue3-network
