@@ -18,6 +18,17 @@ docker-compose up -d
 docker exec -it <nginx-container-name> nginx -s reload
 # 重启 nginx 服务容器
 docker-compose restart nginx
+# 特别检查Kafka和Zookeeper
+docker ps | grep -E "(kafka|zookeeper)"
+# 检查哪个进程占用了6379端口
+sudo netstat -tlnp | grep :6379
+# 或者
+sudo lsof -i :6379
+# 如果是Redis进程占用了端口，可以停止它
+sudo kill <进程ID>
+
+# 彻底清理包括数据卷
+docker-compose down -v
 
 列出所有本地镜像
     docker images

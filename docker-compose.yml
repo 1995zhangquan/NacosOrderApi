@@ -1,3 +1,4 @@
+#volumes挂载方式：自定义的文件：容器默认读取的文件
 version: '3.8'
 
 volumes:
@@ -18,141 +19,134 @@ services:
       MYSQL_ROOT_HOST: '%' # 允许远程连接
     ports:
       - "3306:3306"
+    volumes:
+      #初始化数据库，避免nacos服务因为数据库是空的导致启动失败
+      - ./nacos-init-sql.sql:/docker-entrypoint-initdb.d/mysql-schema.sql
+      - mysql_data:/var/lib/mysql
     networks:
       - vue3-network
     command: --default-authentication-plugin=mysql_native_password
-    restart: unless-stopped #自动重启
+#    restart: unless-stopped #自动重启
 
+# 使用kRafka
+#  zookeeper:
+#    image: zookeeper:latest
+#    container_name: zookeeper
+#    ports:
+#      - "2181:2181"
+#    environment:
+#      ALLOW_ANONYMOUS_LOGIN: "yes" #允许匿名登录dock
+#      ZOOKEEPER_CLIENT_PORT: 2181
+#      ZOOKEEPER_TICK_TIME: 2000
+#    networks:
+#      - vue3-network
 
-  zookeeper:
-    image: zookeeper:latest
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes" #允许匿名登录dock
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - vue3-network
-
+  #Kafka 服务 (KRaft 模式)
   kafka:
-    image: apache/kafka:4.1.1
+    image: bitnami/kafka:latest
     # image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     ports:
       - "9092:9092"
-    depends_on:
-      - zookeeper
+      - "9093:9093"
     networks:
       - vue3-network
     environment:
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_AUTO_CREATE_TOPICS=true #自动创建主题
-    restart: unless-stopped
+      # Bitnami 特定的 KRaft 配置
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      # 监听器配置 - 使用 Bitnami 的变量名
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://192.168.10.34:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      # 集群配置
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # 集群 ID
+      KAFKA_KRAFT_CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+#    restart: unless-stopped
+
 
   # 第一个Nacos节点
   nacos8814:
-    image: nacos/nacos-server:latest
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v3.1.0
     container_name: nacos-server8814
     ports:
       - "8814:8848"      # 主机端口8814映射到容器标准端口8848
-      - "8824:8824"      # 控制台端口
     environment:
+      - PREFER_HOST_MODE=hostname
       - MODE=cluster
-      - NACOS_SERVER_IP=192.168.10.34
-      - NACOS_APPLICATION_PORT=8848      # 容器内仍使用标准端口
-      - NACOS_CONSOLE_PORT=8824
-      - NACOS_SERVERS=192.168.10.34:8814 192.168.10.34:8836 192.168.10.34:8853
+      - NACOS_SERVERS=nacos8814:8848 nacos8836:8848 nacos8853:8848
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
-      - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_DB_NAME=vue3db
+      - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_USER=root
       - MYSQL_SERVICE_PASSWORD=123456
-      - MYSQL_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&serverTimezone=Asia/Shanghai
-      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
       - NACOS_AUTH_ENABLE=true
-      - NACOS_AUTH_IDENTITY_KEY=nacosidentitykey
-      - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
-      - EMBEDDED_STORAGE=embedded
-    volumes:
-      - ./nacos-cluster.conf:/home/conf/cluster.conf
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_IDENTITY_KEY=serverIdentity
+      - NACOS_AUTH_IDENTITY_VALUE=security
     depends_on:
       - mysql
     networks:
       - vue3-network
-    restart: unless-stopped
 
-  # 第二个Nacos节点
   nacos8836:
-    image: nacos/nacos-server:latest
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v3.1.0
     container_name: nacos-server8836
     ports:
-      - "8836:8848"      # 主机端口8836映射到容器标准端口8848
-      - "8846:8846"      # 控制台端口
+      - "8836:8848"      # 主机端口8814映射到容器标准端口8848
     environment:
+      - PREFER_HOST_MODE=hostname
       - MODE=cluster
-      - NACOS_SERVER_IP=192.168.10.34
-      - NACOS_APPLICATION_PORT=8848      # 容器内仍使用标准端口
-      - NACOS_CONSOLE_PORT=8846
-      - NACOS_SERVERS=192.168.10.34:8814 192.168.10.34:8836 192.168.10.34:8853
+      - NACOS_SERVERS=nacos8814:8848 nacos8836:8848 nacos8853:8848
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
-      - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_DB_NAME=vue3db
+      - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_USER=root
       - MYSQL_SERVICE_PASSWORD=123456
-      - MYSQL_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&serverTimezone=Asia/Shanghai
-      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
       - NACOS_AUTH_ENABLE=true
-      - NACOS_AUTH_IDENTITY_KEY=nacosidentitykey
-      - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
-      - EMBEDDED_STORAGE=embedded
-    volumes:
-      - ./nacos-cluster.conf:/home/conf/cluster.conf
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_IDENTITY_KEY=serverIdentity
+      - NACOS_AUTH_IDENTITY_VALUE=security
     depends_on:
       - mysql
     networks:
       - vue3-network
-    restart: unless-stopped
 
-  # 第三个Nacos节点
   nacos8853:
-    image: nacos/nacos-server:latest
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v3.1.0
     container_name: nacos-server8853
     ports:
-      - "8853:8848"      # 主机端口8853映射到容器标准端口8848
-      - "8863:8863"      # 控制台端口
+      - "8853:8848"      # 主机端口8814映射到容器标准端口8848
     environment:
+      - PREFER_HOST_MODE=hostname
       - MODE=cluster
-      - NACOS_SERVER_IP=192.168.10.34
-      - NACOS_APPLICATION_PORT=8848      # 容器内仍使用标准端口
-      - NACOS_CONSOLE_PORT=8863
-      - NACOS_SERVERS=192.168.10.34:8814 192.168.10.34:8836 192.168.10.34:8853
+      - NACOS_SERVERS=nacos8814:8848 nacos8836:8848 nacos8853:8848
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
-      - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_DB_NAME=vue3db
+      - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_USER=root
       - MYSQL_SERVICE_PASSWORD=123456
-      - MYSQL_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&serverTimezone=Asia/Shanghai
-      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
       - NACOS_AUTH_ENABLE=true
-      - NACOS_AUTH_IDENTITY_KEY=nacosidentitykey
-      - NACOS_AUTH_IDENTITY_VALUE=nacosidentityvalue
-      - EMBEDDED_STORAGE=embedded
-    volumes:
-      - ./nacos-cluster.conf:/home/conf/cluster.conf
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_IDENTITY_KEY=serverIdentity
+      - NACOS_AUTH_IDENTITY_VALUE=security
     depends_on:
       - mysql
     networks:
       - vue3-network
-    restart: unless-stopped
+
 
   # Nginx 负载均衡器
   nginx:
@@ -160,20 +154,23 @@ services:
     container_name: nginx-balance
     ports:
       - "8848:8848"
+      - "9848:9848"
     volumes:
-      - ./nginx.conf:/home/conf/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - nacos8814
       - nacos8836
       - nacos8853
     networks:
       - vue3-network
-    restart: unless-stopped
+#    restart: unless-stopped
 
   redis:
     image: redis:latest
     container_name: redis
     ports:
       - "6379:6379"
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - vue3-network
