@@ -4,7 +4,11 @@ server:
 spring:
   application:
     name: nacos-order-api
-
+  cloud:
+    nacos:
+      discovery:
+        register-enabled: false
+  
   profiles:
     active: dev
 

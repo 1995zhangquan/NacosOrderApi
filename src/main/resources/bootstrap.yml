@@ -7,3 +7,5 @@ spring:
         shared-configs: #共享配置
           - data-id: share-mysql-connect.yaml
           - data-id: share-redis-connect.yaml
+      username: naos
+      password: nacos

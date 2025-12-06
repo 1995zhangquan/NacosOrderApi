@@ -186,3 +186,10 @@ CREATE TABLE `permissions`
     `action`   varchar(8)   NOT NULL COMMENT 'action',
     UNIQUE INDEX `uk_role_permission` (`role`,`resource`,`action`) USING BTREE
 );
+
+CREATE TABLE config_info_aggr (
+  data_id VARCHAR(255) NOT NULL,
+  group_id VARCHAR(255) NOT NULL,
+  tenant_id VARCHAR(255),
+  PRIMARY KEY (data_id, group_id, tenant_id)
+);

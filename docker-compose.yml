@@ -73,14 +73,15 @@ services:
 
   # 第一个Nacos节点
   nacos8814:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v3.1.0
-    container_name: nacos-server8814
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v2.3.2
+    container_name: nacos8814
     ports:
-      - "8814:8848"      # 主机端口8814映射到容器标准端口8848
+      - "8814:8848"
+      - "9814:9848"
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=cluster
-      - NACOS_SERVERS=nacos8814:8848 nacos8836:8848 nacos8853:8848
+      - NACOS_SERVERS=nacos8814:8848,nacos8836:8848,nacos8853:8848
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_DB_NAME=vue3db
@@ -88,7 +89,7 @@ services:
       - MYSQL_SERVICE_USER=root
       - MYSQL_SERVICE_PASSWORD=123456
       - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
-      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_ENABLE=true #此处开启后，需要配置server-addr.username=nacos,server-addr.password=nacos，2.4.0版本开始
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
       - NACOS_AUTH_IDENTITY_KEY=serverIdentity
       - NACOS_AUTH_IDENTITY_VALUE=security
@@ -98,14 +99,15 @@ services:
       - vue3-network
 
   nacos8836:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v3.1.0
-    container_name: nacos-server8836
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v2.3.2
+    container_name: nacos8836
     ports:
-      - "8836:8848"      # 主机端口8814映射到容器标准端口8848
+      - "8836:8848"
+      - "9836:9848"
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=cluster
-      - NACOS_SERVERS=nacos8814:8848 nacos8836:8848 nacos8853:8848
+      - NACOS_SERVERS=nacos8814:8848,nacos8836:8848,nacos8853:8848
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_DB_NAME=vue3db
@@ -113,7 +115,7 @@ services:
       - MYSQL_SERVICE_USER=root
       - MYSQL_SERVICE_PASSWORD=123456
       - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
-      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_ENABLE=true #此处开启后，需要配置server-addr.username=nacos,server-addr.password=nacos，2.4.0版本开始
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
       - NACOS_AUTH_IDENTITY_KEY=serverIdentity
       - NACOS_AUTH_IDENTITY_VALUE=security
@@ -123,14 +125,15 @@ services:
       - vue3-network
 
   nacos8853:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v3.1.0
-    container_name: nacos-server8853
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nacos/nacos-server:v2.3.2
+    container_name: nacos8853
     ports:
-      - "8853:8848"      # 主机端口8814映射到容器标准端口8848
+      - "8853:8848"
+      - "9853:9848"
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=cluster
-      - NACOS_SERVERS=nacos8814:8848 nacos8836:8848 nacos8853:8848
+      - NACOS_SERVERS=nacos8814:8848,nacos8836:8848,nacos8853:8848
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_DB_NAME=vue3db
@@ -138,7 +141,7 @@ services:
       - MYSQL_SERVICE_USER=root
       - MYSQL_SERVICE_PASSWORD=123456
       - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
-      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_ENABLE=true #此处开启后，需要配置server-addr.username=nacos,server-addr.password=nacos，2.4.0版本开始
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
       - NACOS_AUTH_IDENTITY_KEY=serverIdentity
       - NACOS_AUTH_IDENTITY_VALUE=security
@@ -153,8 +156,8 @@ services:
     image: nginx:latest
     container_name: nginx-balance
     ports:
-      - "8848:8848"
-      - "9848:9848"
+      - "8848:80"
+      - "1080:1080"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
